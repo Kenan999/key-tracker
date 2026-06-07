@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: live-tracker
+Version: 0.1.0
+Summary: Lightweight LLM call tracking with a real-time dashboard
+Requires-Python: >=3.10

@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "live-tracker"
+version = "0.1.0"
+description = "Lightweight LLM call tracking with a real-time dashboard"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["live_tracker*"]

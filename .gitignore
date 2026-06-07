@@ -1,4 +1,4 @@
-live_tracker/live_tracker_status.json
-live_tracker/live_tracker_logs.json
+live_tracker_status.json
+live_tracker_logs.json
 __pycache__/
 *.pyc

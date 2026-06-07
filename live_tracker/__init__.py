@@ -10,20 +10,24 @@ import atexit
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATUS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_status.json")
-LOGS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_logs.json")
+STATUS_FILE = None
+LOGS_FILE = None
 MAX_LOGS = 200
 
 _SERVER_URL = None
 
 
 class LiveTracker:
-    def __init__(self, name="app", server_url=None):
-        global _SERVER_URL
+    def __init__(self, name="app", server_url=None, data_dir=None):
+        global _SERVER_URL, STATUS_FILE, LOGS_FILE
         self.name = name
         if server_url:
             _SERVER_URL = server_url.rstrip("/")
+        if data_dir:
+            os.makedirs(data_dir, exist_ok=True)
+        dir = (data_dir or os.getcwd())
+        STATUS_FILE = os.path.join(dir, "live_tracker_status.json")
+        LOGS_FILE = os.path.join(dir, "live_tracker_logs.json")
         _set_status(True, name)
         atexit.register(lambda: _set_status(False, name))
 

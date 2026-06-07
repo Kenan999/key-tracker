@@ -4,11 +4,12 @@ import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATUS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_status.json")
-LOGS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_logs.json")
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 PORT = 8000
+
+DATA_DIR = os.environ.get("LIVE_TRACKER_DATA_DIR") or os.getcwd()
+STATUS_FILE = os.path.join(DATA_DIR, "live_tracker_status.json")
+LOGS_FILE = os.path.join(DATA_DIR, "live_tracker_logs.json")
 MAX_LOGS = 200
 
 
@@ -110,8 +111,9 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     print(f"  Live Tracker Dashboard")
     print(f"  ─────────────────────")
-    print(f"  URL:  http://0.0.0.0:{PORT}")
-    print(f"  PID:  {os.getpid()}")
+    print(f"  URL:      http://0.0.0.0:{PORT}")
+    print(f"  Data:     {DATA_DIR}")
+    print(f"  PID:      {os.getpid()}")
     print()
     server = HTTPServer(("0.0.0.0", PORT), Handler)
     try:

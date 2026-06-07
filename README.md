@@ -4,11 +4,15 @@ Lightweight LLM call tracking with a real-time dashboard.
 
 Track prompt/response pairs, token usage, and application status — viewable live from any device on your Tailscale network.
 
-## Quick Start
+## Install
 
 ```bash
-pip install openai
+pip install -e /path/to/key-tracker
+# or from the repo directory:
+pip install -e .
 ```
+
+Requires `openai` for the `chat()` method, but `log()` works standalone.
 
 ## Usage
 
@@ -17,7 +21,10 @@ from live_tracker import LiveTracker
 from openai import OpenAI
 
 client = OpenAI()
-tracker = LiveTracker(name="my-app", server_url="http://100.69.224.83:8000")
+tracker = LiveTracker(
+    name="my-app",
+    server_url="http://100.69.224.83:8000"
+)
 
 result = tracker.chat(client, [
     {"role": "user", "content": "Hello!"}
@@ -32,9 +39,13 @@ Without `server_url`, data is written to local JSON files only:
 tracker = LiveTracker(name="my-app")
 ```
 
-## Dashboard
+You can also set a custom `data_dir` for the JSON files (defaults to `os.getcwd()`):
 
-Start the dashboard server:
+```python
+tracker = LiveTracker(name="my-app", data_dir="/path/to/data")
+```
+
+## Dashboard
 
 ```bash
 python3 dashboard/server.py
@@ -59,12 +70,12 @@ The dashboard shows:
 ## Project Structure
 
 ```
-live_tracker/
-├── __init__.py              # LiveTracker class
-├── live_tracker_status.json # Runtime status (gitignored)
-├── live_tracker_logs.json   # Runtime logs (gitignored)
-dashboard/
-├── server.py                # Dashboard HTTP server
-└── index.html               # Frontend dashboard
-README.md
+├── live_tracker/
+│   └── __init__.py       # LiveTracker class
+├── dashboard/
+│   ├── server.py         # Dashboard HTTP server
+│   └── index.html        # Frontend dashboard
+├── pyproject.toml        # Package config
+├── .gitignore
+└── README.md
 ```
