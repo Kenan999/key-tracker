@@ -10,6 +10,7 @@ PORT = 8000
 DATA_DIR = os.environ.get("LIVE_TRACKER_DATA_DIR") or os.getcwd()
 STATUS_FILE = os.path.join(DATA_DIR, "live_tracker_status.json")
 LOGS_FILE = os.path.join(DATA_DIR, "live_tracker_logs.json")
+CONV_FILE = os.path.join(DATA_DIR, "conversation.json")
 MAX_LOGS = 200
 
 
@@ -47,13 +48,17 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/status":
+        if parsed.path in ("/api/status", "/api/live-tracker/status"):
             data = _read_json(STATUS_FILE, {"active": False, "name": "", "updated": time.time()})
             self._send_json(data)
 
         elif parsed.path == "/api/logs":
             logs = _read_json(LOGS_FILE, [])
             self._send_json(logs)
+
+        elif parsed.path in ("/api/conversation", "/api/live-tracker/conversation"):
+            convo = _read_json(CONV_FILE, [])
+            self._send_json(convo)
 
         else:
             super().do_GET()
@@ -87,6 +92,12 @@ class Handler(SimpleHTTPRequestHandler):
                 logs = logs[-MAX_LOGS:]
             _write_json(LOGS_FILE, logs)
             print(f"  log     ← {body.get('model', '?')}  tokens={body.get('usage', {}).get('total_tokens', '?')}")
+            self._send_json({"ok": True})
+
+        elif parsed.path in ("/api/conversation", "/api/live-tracker/conversation"):
+            body = self._read_body()
+            _write_json(CONV_FILE, body.get("messages", body if isinstance(body, list) else []))
+            print(f"  conv    ← {len(body.get('messages', body if isinstance(body, list) else []))} messages")
             self._send_json({"ok": True})
 
         else:

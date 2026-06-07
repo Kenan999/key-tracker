@@ -1,4 +1,6 @@
 live_tracker_status.json
 live_tracker_logs.json
+conversation.json
 __pycache__/
 *.pyc
+live_tracker.egg-info/

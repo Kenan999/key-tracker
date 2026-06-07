@@ -1,6 +1,6 @@
 # Live Tracker
 
-Lightweight LLM call tracking with a real-time dashboard.
+Lightweight LLM call tracking with a real-time chat dashboard.
 
 Track prompt/response pairs, token usage, and application status — viewable live from any device on your Tailscale network.
 
@@ -16,30 +16,38 @@ Requires `openai` for the `chat()` method, but `log()` works standalone.
 
 ## Usage
 
+### With internal client (recommended)
+
 ```python
 from live_tracker import LiveTracker
-from openai import OpenAI
 
-client = OpenAI()
 tracker = LiveTracker(
+    api_key="sk-...",
     name="my-app",
+    model="gpt-4o-mini",
     server_url="http://100.69.224.83:8000"
 )
 
-result = tracker.chat(client, [
+result = tracker.chat([
     {"role": "user", "content": "Hello!"}
-], model="gpt-4o-mini")
+])
 
 print(result["content"])
 ```
 
-Without `server_url`, data is written to local JSON files only:
+### With external client
 
 ```python
+from openai import OpenAI
+from live_tracker import LiveTracker
+
+client = OpenAI()
 tracker = LiveTracker(name="my-app")
+
+result = tracker.chat([{"role": "user", "content": "Hello!"}], client=client)
 ```
 
-You can also set a custom `data_dir` for the JSON files (defaults to `os.getcwd()`):
+### Custom data directory
 
 ```python
 tracker = LiveTracker(name="my-app", data_dir="/path/to/data")
@@ -51,19 +59,21 @@ tracker = LiveTracker(name="my-app", data_dir="/path/to/data")
 python3 dashboard/server.py
 ```
 
-Open `http://<tailscale-ip>:8000` in a browser.
-
 The dashboard shows:
-- **Status** — active/inactive with a pulsing indicator
-- **Recent calls** — model, token count, finish reason, timestamp
-- Auto-refreshes every 5 seconds
+- **Status** — active/inactive indicator
+- **Active Scripts** — click a script to open its chat
+- **Chat view** — message bubbles with expandable request/metadata details
+- **Token bar** — usage out of 128,000 context window
+- Auto-refreshes every 2 seconds
 
 ## API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/status` | Current active status |
-| `POST` | `/api/status` | Update status `{active, name, updated}` |
+| `GET` | `/api/live-tracker/status` | Current active status |
+| `POST` | `/api/status` | Update status |
+| `GET` | `/api/live-tracker/conversation` | Full conversation |
+| `POST` | `/api/conversation` | Submit conversation |
 | `GET` | `/api/logs` | Recent log entries |
 | `POST` | `/api/logs` | Submit a log entry |
 
@@ -75,7 +85,9 @@ The dashboard shows:
 ├── dashboard/
 │   ├── server.py         # Dashboard HTTP server
 │   └── index.html        # Frontend dashboard
-├── pyproject.toml        # Package config
+├── examples/rag/
+│   └── prompt.py         # CLI example
+├── pyproject.toml
 ├── .gitignore
 └── README.md
 ```
