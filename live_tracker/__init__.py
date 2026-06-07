@@ -7,20 +7,29 @@ import json
 import os
 import time
 import atexit
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATUS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_status.json")
+LOGS_FILE = os.path.join(BASE, "live_tracker", "live_tracker_logs.json")
+MAX_LOGS = 200
+
+_SERVER_URL = None
 
 
 class LiveTracker:
-    def __init__(self, name="app"):
+    def __init__(self, name="app", server_url=None):
+        global _SERVER_URL
         self.name = name
+        if server_url:
+            _SERVER_URL = server_url.rstrip("/")
         _set_status(True, name)
         atexit.register(lambda: _set_status(False, name))
 
     def log(self, request, response):
         _set_status(True, self.name)
-        return {
+        entry = {
             "role": "assistant",
             "content": response["content"],
             "model": response["model"],
@@ -28,6 +37,8 @@ class LiveTracker:
             "finish_reason": response["finish_reason"],
             "request": request,
         }
+        _send_log(entry)
+        return entry
 
     def chat(self, client, messages, model="gpt-4o-mini"):
         req = [{"role": m["role"], "content": m["content"]} for m in messages]
@@ -48,6 +59,35 @@ class LiveTracker:
         )
 
 
+def _post_json(url, data):
+    body = json.dumps(data).encode()
+    req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        urlopen(req, timeout=3)
+    except URLError:
+        pass
+
+
 def _set_status(active, name=""):
+    payload = {"active": active, "name": name, "updated": time.time()}
     with open(STATUS_FILE, "w") as f:
-        json.dump({"active": active, "name": name, "updated": time.time()}, f)
+        json.dump(payload, f)
+    if _SERVER_URL:
+        _post_json(f"{_SERVER_URL}/api/status", payload)
+
+
+def _send_log(entry):
+    logs = []
+    try:
+        if os.path.exists(LOGS_FILE):
+            with open(LOGS_FILE) as f:
+                logs = json.load(f)
+    except Exception:
+        logs = []
+    logs.append({**entry, "timestamp": time.time()})
+    if len(logs) > MAX_LOGS:
+        logs = logs[-MAX_LOGS:]
+    with open(LOGS_FILE, "w") as f:
+        json.dump(logs, f)
+    if _SERVER_URL:
+        _post_json(f"{_SERVER_URL}/api/logs", entry)

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Tracker Dashboard</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-card-hover: #1a1a26;
+    --border: #1e1e2e;
+    --text-primary: #e2e2e8;
+    --text-secondary: #8888a0;
+    --text-muted: #565670;
+    --accent-green: #22c55e;
+    --accent-green-bg: rgba(34, 197, 94, 0.08);
+    --accent-red: #ef4444;
+    --accent-red-bg: rgba(239, 68, 68, 0.08);
+    --accent-blue: #3b82f6;
+    --accent-blue-bg: rgba(59, 130, 246, 0.08);
+    --accent-amber: #f59e0b;
+    --accent-amber-bg: rgba(245, 158, 11, 0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+  }
+
+  .header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .card:hover {
+    border-color: #2a2a3e;
+  }
+
+  .card + .card {
+    margin-top: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+
+  .card-count {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .status-badge.active {
+    background: var(--accent-green-bg);
+    color: var(--accent-green);
+  }
+
+  .status-badge.inactive {
+    background: var(--accent-red-bg);
+    color: var(--accent-red);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-badge.active .status-dot {
+    background: var(--accent-green);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  }
+
+  .status-badge.active .status-dot.pulse {
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  .status-badge.inactive .status-dot {
+    background: var(--accent-red);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .info-item.full {
+    grid-column: 1 / -1;
+  }
+
+  .info-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+  }
+
+  .info-value {
+    font-size: 15px;
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .info-value.mono {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .info-value.time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Logs table */
+  .logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .logs-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logs-table td {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .logs-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .logs-table .col-time {
+    width: 72px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .logs-table .col-model {
+    width: 110px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .logs-table .col-tokens {
+    width: 60px;
+    text-align: right;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+  }
+
+  .logs-table .col-reason {
+    width: 80px;
+    text-align: right;
+  }
+
+  .reason-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .reason-tag.stop {
+    background: var(--accent-green-bg);
+    color: var(--accent-green);
+  }
+
+  .reason-tag.length {
+    background: var(--accent-amber-bg);
+    color: var(--accent-amber);
+  }
+
+  .reason-tag.other {
+    background: var(--accent-blue-bg);
+    color: var(--accent-blue);
+  }
+
+  .logs-empty {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .refresh-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .refresh-indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.3s;
+  }
+
+  .refresh-indicator.live {
+    background: var(--accent-green);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
+  }
+
+  .error-state {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .error-state.visible {
+    display: block;
+  }
+
+  .error-state .icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+    opacity: 0.4;
+  }
+
+  .error-state p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .loading .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .hidden { display: none; }
+
+  .footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="header">
+    <h1>Live Tracker</h1>
+    <p>Real-time LLM usage dashboard</p>
+  </div>
+
+  <!-- Status Card -->
+  <div class="card" id="statusCard">
+    <div class="loading" id="statusLoading">
+      <div class="spinner"></div>
+      Loading status…
+    </div>
+
+    <div class="error-state" id="statusError">
+      <div class="icon">⚠</div>
+      <p>Unable to reach the tracker.<br>Make sure the server is running.</p>
+    </div>
+
+    <div class="hidden" id="statusContent">
+      <div class="card-header">
+        <span class="card-label">Status</span>
+        <span class="status-badge" id="badge">
+          <span class="status-dot pulse" id="dot"></span>
+          <span id="statusText">—</span>
+        </span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Application</span>
+          <span class="info-value mono" id="appName">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Last Seen</span>
+          <span class="info-value mono time" id="lastSeen">—</span>
+        </div>
+        <div class="info-item full">
+          <span class="info-label">Timestamp</span>
+          <span class="info-value mono" id="timestamp">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logs Card -->
+  <div class="card" id="logsCard">
+    <div class="card-header">
+      <span class="card-label">Recent Calls</span>
+      <span class="card-count" id="logCount">0 entries</span>
+    </div>
+
+    <div class="loading" id="logsLoading">
+      <div class="spinner"></div>
+      Loading logs…
+    </div>
+
+    <div class="error-state" id="logsError">
+      <div class="icon">⚠</div>
+      <p>Could not load logs.</p>
+    </div>
+
+    <div class="hidden" id="logsContent">
+      <div class="logs-empty" id="logsEmpty">No calls yet.</div>
+      <table class="logs-table hidden" id="logsTable">
+        <thead>
+          <tr>
+            <th class="col-time">Time</th>
+            <th>Model</th>
+            <th class="col-tokens">Tokens</th>
+            <th class="col-reason">Finish</th>
+          </tr>
+        </thead>
+        <tbody id="logsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="refresh-bar">
+    <span class="refresh-indicator live" id="liveDot"></span>
+    <span id="refreshText">Auto-refreshing every 5s</span>
+  </div>
+
+  <div class="footer">live_tracker</div>
+</div>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  const fmtTime = (ts) => {
+    const d = new Date(ts * 1000);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  };
+
+  const fmtRelative = (ts) => {
+    const diff = Date.now() / 1000 - ts;
+    if (diff < 5) return 'just now';
+    if (diff < 60) return Math.floor(diff) + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    return Math.floor(diff / 3600) + 'h ago';
+  };
+
+  const reasonClass = (r) => {
+    if (!r) return 'other';
+    const s = r.toLowerCase();
+    if (s === 'stop') return 'stop';
+    if (s.includes('length')) return 'length';
+    return 'other';
+  };
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/status');
+      if (!res.ok) throw new Error('fail');
+      const data = await res.json();
+
+      $('#statusLoading').classList.add('hidden');
+      $('#statusError').classList.remove('visible');
+      $('#statusContent').classList.remove('hidden');
+
+      const active = data.active === true;
+      const badge = $('#badge');
+      badge.className = 'status-badge ' + (active ? 'active' : 'inactive');
+      $('#statusText').textContent = active ? 'Active' : 'Inactive';
+
+      const dot = $('#dot');
+      dot.className = 'status-dot' + (active ? ' pulse' : '');
+
+      $('#appName').textContent = data.name || '—';
+      $('#lastSeen').textContent = fmtRelative(data.updated);
+      $('#timestamp').textContent = fmtTime(data.updated);
+    } catch {
+      $('#statusLoading').classList.add('hidden');
+      $('#statusError').classList.add('visible');
+      $('#statusContent').classList.add('hidden');
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch('/api/logs');
+      if (!res.ok) throw new Error('fail');
+      const logs = await res.json();
+
+      $('#logsLoading').classList.add('hidden');
+      $('#logsContent').classList.remove('hidden');
+
+      $('#logCount').textContent = logs.length + ' entr' + (logs.length === 1 ? 'y' : 'ies');
+
+      if (logs.length === 0) {
+        $('#logsEmpty').classList.remove('hidden');
+        $('#logsTable').classList.add('hidden');
+        return;
+      }
+
+      $('#logsEmpty').classList.add('hidden');
+      $('#logsTable').classList.remove('hidden');
+
+      const tbody = $('#logsBody');
+      const reversed = [...logs].reverse();
+      tbody.innerHTML = reversed.map(log => `
+        <tr>
+          <td class="col-time">${fmtTime(log.timestamp)}</td>
+          <td class="col-model">${log.model || '—'}</td>
+          <td class="col-tokens">${log.usage ? log.usage.total_tokens : '—'}</td>
+          <td class="col-reason"><span class="reason-tag ${reasonClass(log.finish_reason)}">${log.finish_reason || '—'}</span></td>
+        </tr>
+      `).join('');
+    } catch {
+      $('#logsLoading').classList.add('hidden');
+      $('#logsError').classList.add('visible');
+    }
+  };
+
+  const refresh = () => { fetchStatus(); fetchLogs(); };
+  refresh();
+  setInterval(refresh, 5000);
+</script>
+</body>
+</html>
